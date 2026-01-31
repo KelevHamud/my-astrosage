@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astrosage Personal</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); width: 100%; max-width: 450px; text-align: center; }
+        h1 { color: #ff9800; margin-bottom: 25px; font-size: 28px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; transition: 0.3s; }
+        input:focus { border-color: #ff9800; }
+        button { width: 100%; padding: 15px; background: #ff9800; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 18px; font-weight: bold; margin-top: 20px; transition: 0.3s; }
+        button:hover { background: #e68a00; }
+        #report { display: none; margin-top: 30px; text-align: left; background: #fff8e1; padding: 20px; border-radius: 10px; border-left: 6px solid #ff9800; }
+        .item { margin-bottom: 10px; font-size: 15px; line-height: 1.5; color: #444; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🕉️ ASTROSAGE PRO</h1>
+        <input type="text" id="userName" placeholder="Ваше имя">
+        <input type="date" id="birthDate">
+        <button onclick="getKundli()">ПОЛУЧИТЬ АНАЛИЗ</button>
+
+        <div id="report">
+            <h3 id="rTitle" style="color: #ff9800; margin-top: 0;"></h3>
+            <div id="rUser" class="item" style="font-weight: bold;"></div>
+            <div id="rLagna" class="item"></div>
+            <div id="rNakshatra" class="item"></div>
+            <div id="rDasha" class="item"></div>
+            <div id="rAdvice" class="item" style="font-style: italic; color: #666;"></div>
+        </div>
+    </div>
+
+    <script>
+        async function getKundli() {
+            const name = document.getElementById('userName').value;
+            const date = document.getElementById('birthDate').value;
+            const btn = document.querySelector('button');
+            const url = 'ТВОЯ_ССЫЛКА_ИЗ_ШАГА_2'; // <--- ВСТАВЬ СЮДА СВОЙ URL ИЗ GOOGLE
+
+            if (!name || !date) { alert("Пожалуйста, введите данные"); return; }
+
+            btn.innerText = "Изучаем звезды...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${url}?name=${encodeURIComponent(name)}&date=${date}`);
+                const data = await response.json();
+
+                document.getElementById('report').style.display = 'block';
+                document.getElementById('rTitle').innerText = data.title;
+                document.getElementById('rUser').innerText = data.user;
+                document.getElementById('rLagna').innerText = data.lagna;
+                document.getElementById('rNakshatra').innerText = data.nakshatra;
+                document.getElementById('rDasha').innerText = data.dasha;
+                document.getElementById('rAdvice').innerText = data.advice;
+            } catch (err) {
+                alert("Ошибка соединения со звездами. Проверьте настройки доступа в скрипте.");
+            } finally {
+                btn.innerText = "ПОЛУЧИТЬ АНАЛИЗ";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
