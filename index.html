@@ -3,119 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Astrosage Clone</title>
+    <title>VedicTime Clone</title>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #eceff1; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
+        /* 1. ГЛАВНЫЙ СТИЛЬ VEDICTIME (ТЕМНАЯ ТЕМА) */
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --gold: #d4af37;
+            --text-main: #e0e0e0;
+            --border: #333;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 10px; }
         
+        /* КОНТЕЙНЕР */
+        .app-container { max-width: 800px; margin: 0 auto; background: var(--card-bg); border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); overflow: hidden; }
+
         /* ШАПКА */
-        .header { background: #FF9800; color: white; padding: 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .header p { margin: 5px 0 0; opacity: 0.9; }
+        header { background: #000; padding: 20px; text-align: center; border-bottom: 2px solid var(--gold); }
+        h1 { margin: 0; color: var(--gold); font-weight: 300; letter-spacing: 2px; text-transform: uppercase; }
 
-        /* ФОРМА */
-        .form-box { padding: 20px; background: #fff3e0; border-bottom: 1px solid #ffe0b2; }
-        input { width: 48%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px; }
-        button { width: 100%; padding: 12px; background: #e65100; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        button:hover { background: #bf360c; }
+        /* ВВОД ДАННЫХ */
+        .controls { padding: 20px; display: flex; gap: 10px; flex-wrap: wrap; background: #252525; }
+        input { flex: 1; padding: 10px; background: #333; border: 1px solid var(--border); color: white; border-radius: 4px; }
+        button { padding: 10px 20px; background: var(--gold); color: black; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        button:hover { background: #b59020; }
 
-        /* ОТЧЕТ */
-        #reportArea { display: none; padding: 20px; }
+        /* ВКЛАДКИ (TABS) */
+        .tabs { display: flex; border-bottom: 1px solid var(--border); }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; background: #1a1a1a; color: #888; transition: 0.3s; }
+        .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #222; }
+
+        /* КОНТЕНТ */
+        .content-area { padding: 20px; min-height: 300px; }
+        .hidden { display: none; }
+
+        /* ТАБЛИЦА */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; color: var(--gold); border-bottom: 1px solid var(--border); padding: 10px; }
+        td { padding: 10px; border-bottom: 1px solid #333; }
+
+        /* ГРАФИКА: КАРТА (СЕВЕРНЫЙ СТИЛЬ - CSS HACK) */
+        .kundli-box {
+            position: relative;
+            width: 300px; height: 300px;
+            margin: 20px auto;
+            border: 2px solid var(--gold);
+            background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/North_Indian_Chart_Blank.svg/1024px-North_Indian_Chart_Blank.svg.png');
+            background-size: cover;
+        }
+        /* Позиции домов (упрощенно для примера) */
+        .house { position: absolute; font-size: 10px; color: #777; }
+        .planet-pos { position: absolute; font-size: 12px; font-weight: bold; color: var(--gold); text-shadow: 1px 1px 2px black; }
         
-        /* ТАБЛИЦА ПЛАНЕТ (Стиль Astrosage) */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-        th { background: #1976D2; color: white; padding: 10px; text-align: left; }
-        td { border-bottom: 1px solid #eee; padding: 8px; color: #333; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        
-        /* КАРТОЧКИ ПРЕДСКАЗАНИЙ */
-        .prediction-card { background: #e8f5e9; padding: 15px; margin-top: 10px; border-left: 4px solid #4caf50; border-radius: 4px; }
+        /* Координаты для планет в карте (Примерная сетка для Лагны вверху) */
+        .h1 { top: 15%; left: 45%; } /* Лагна */
+        .h2 { top: 5%; left: 20%; }
+        .h3 { top: 15%; left: 5%; }
+        .h4 { top: 45%; left: 15%; }
+        .h5 { top: 75%; left: 5%; }
+        .h6 { top: 85%; left: 20%; }
+        .h7 { top: 75%; left: 45%; }
+        .h10 { top: 45%; left: 80%; }
+        /* И так далее... */
+
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <h1>🕉️ ASTROSAGE PRO</h1>
-        <p>Ведический гороскоп и анализ</p>
-    </div>
+<div class="app-container">
+    <header>
+        <h1>🕉️ VedicTime Lite</h1>
+    </header>
 
-    <div class="form-box">
-        <input type="text" id="name" placeholder="Имя">
+    <div class="controls">
+        <input type="text" id="name" placeholder="Имя" value="Павел">
         <input type="date" id="date">
-        <button onclick="getReport()">РАССЧИТАТЬ ГОРОСКОП</button>
+        <button onclick="loadData()">РАССЧИТАТЬ</button>
     </div>
 
-    <div id="reportArea">
-        <h3 style="color: #e65100; margin-top: 0;">🪐 Планетарные положения</h3>
-        <table id="planetTable">
-            <thead>
-                <tr>
-                    <th>Планета</th>
-                    <th>Знак</th>
-                    <th>Градус</th>
-                    <th>Дом</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('chart')">Карта (D1)</div>
+        <div class="tab" onclick="switchTab('table')">Координаты</div>
+        <div class="tab" onclick="switchTab('info')">Трактовка</div>
+    </div>
 
-        <h3>🔮 Ваш прогноз</h3>
-        <div id="predictionsList"></div>
+    <div id="chart" class="content-area">
+        <div style="text-align: center; color: #888;">Ваша карта Раши</div>
+        <div class="kundli-box" id="kundliViz">
+            </div>
+    </div>
+
+    <div id="table" class="content-area hidden">
+        <table id="dataTable">
+            <thead><tr><th>Планета</th><th>Знак</th><th>Градус</th><th>Дом</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="info" class="content-area hidden">
+        <div id="predictions">Нажмите "Рассчитать", чтобы получить трактовку.</div>
     </div>
 </div>
 
 <script>
-    // ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT
+    // ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ GOOGLE (Ту самую, рабочую)
     const API_URL = 'https://script.google.com/macros/s/AKfycby9dkqqspkobVumtKqwKDB5NOL8co7OlWhgIF2Wcq7WXsk3b2pn5A9Sn66yM1TDM8UR/exec'; 
 
-    async function getReport() {
+    async function loadData() {
         const name = document.getElementById('name').value;
         const date = document.getElementById('date').value;
         const btn = document.querySelector('button');
 
-        if(!name || !date) { alert("Заполните все поля!"); return; }
+        if(!API_URL.includes('http')) { alert("Вы забыли вставить ссылку в код!"); return; }
 
-        btn.innerText = "Вычисляем положение планет...";
+        btn.innerText = "Загрузка...";
         
         try {
-            const response = await fetch(`${API_URL}?name=${name}&date=${date}`);
-            const data = await response.json();
-
-            // 1. Заполняем таблицу планет
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = ""; // Очистить старое
+            const res = await fetch(`${API_URL}?name=${name}&date=${date}`);
+            const data = await res.json();
             
-            data.planets.forEach(p => {
-                const row = `<tr>
-                    <td><b>${p.name}</b></td>
-                    <td>${p.sign}</td>
-                    <td>${p.degree}</td>
-                    <td>${p.house}</td>
-                </tr>`;
-                tbody.innerHTML += row;
-            });
-
-            // 2. Заполняем предсказания
-            const predDiv = document.getElementById('predictionsList');
-            predDiv.innerHTML = "";
-            data.predictions.forEach(text => {
-                predDiv.innerHTML += `<div class="prediction-card">${text}</div>`;
-            });
-
-            document.getElementById('reportArea').style.display = 'block';
-            btn.innerText = "РАССЧИТАТЬ СНОВА";
+            renderTable(data.planets);
+            renderChart(data.planets);
+            renderInfo(data.predictions);
 
         } catch (e) {
-            alert("Ошибка связи с сервером. Проверьте ссылку!");
             console.error(e);
-            btn.innerText = "РАССЧИТАТЬ ГОРОСКОП";
+            alert("Ошибка загрузки. Проверьте консоль.");
         }
+        btn.innerText = "РАССЧИТАТЬ";
+    }
+
+    function renderTable(planets) {
+        const tbody = document.querySelector('#dataTable tbody');
+        tbody.innerHTML = '';
+        planets.forEach(p => {
+            tbody.innerHTML += `<tr><td>${p.name}</td><td>${p.sign}</td><td>${p.degree}</td><td>${p.house}</td></tr>`;
+        });
+    }
+
+    function renderInfo(preds) {
+        document.getElementById('predictions').innerHTML = preds.map(t => `<p>✨ ${t}</p>`).join('');
+    }
+
+    function renderChart(planets) {
+        // Очистка старых планет
+        const box = document.getElementById('kundliViz');
+        box.innerHTML = ''; 
+
+        // Простая логика отображения (для примера ставим Лагну и Солнце)
+        // Чтобы сделать идеально, нужно прописать координаты всех 12 домов CSS
+        planets.forEach(p => {
+            let cssClass = 'h' + p.house; // Например, h1, h10
+            // Если класс определен в CSS, добавляем планету
+            // (В этом примере определены только основные угловые дома для теста)
+            let el = document.createElement('div');
+            el.className = `planet-pos ${cssClass}`;
+            // Если CSS для дома нет, кидаем в центр (для отладки)
+            if (!document.querySelector(`.${cssClass}`)) el.style = "top: 45%; left: 45%; color: white;"; 
+            
+            // Сокращаем имя (Sun -> Su)
+            let shortName = p.name.substring(0, 2);
+            el.innerText = shortName;
+            
+            box.appendChild(el);
+        });
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.content-area').forEach(el => el.classList.add('hidden'));
+        document.getElementById(tabId).classList.remove('hidden');
+        
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+        event.target.classList.add('active');
     }
 </script>
 
-</body>
-</html>
-    </script>
 </body>
 </html>
