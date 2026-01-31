@@ -2,132 +2,98 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ЧИНТА МАНИ — Ведическая Нумерология</title>
+    <title>CHINTA MANI - Ведический Анализ</title>
     <style>
-        :root { --gold: #d4af37; --bg: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; }
-        body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
-        .app { max-width: 900px; margin: 0 auto; }
-        header { text-align: center; border-bottom: 2px solid var(--gold); padding: 20px; margin-bottom: 20px; }
-        
-        /* Сетка ввода */
-        .input-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; background: var(--card); padding: 20px; border-radius: 8px; }
-        input, button { padding: 12px; border-radius: 4px; border: 1px solid #333; background: #222; color: white; }
-        button { background: var(--gold); color: black; font-weight: bold; cursor: pointer; border: none; }
-
-        /* Табы */
-        .tabs { display: flex; overflow-x: auto; margin-top: 20px; border-bottom: 1px solid var(--gold); }
-        .tab { padding: 10px 20px; cursor: pointer; white-space: nowrap; opacity: 0.6; }
-        .tab.active { opacity: 1; border-bottom: 3px solid var(--gold); font-weight: bold; }
-
-        /* Психоматрица */
-        .matrix-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 240px; margin: 20px auto; }
-        .cell { background: #333; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid var(--gold); flex-direction: column; }
-        .cell span { font-size: 10px; color: var(--gold); }
-
-        /* Чакры */
-        .chakra-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; }
-        .num-badge { background: var(--gold); color: black; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
-        
-        .result-screen { display: none; }
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #eee; line-height: 1.6; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: #1e1e1e; padding: 30px; border-radius: 15px; border: 1px solid #d4af37; }
+        h1, h2 { color: #d4af37; text-align: center; }
+        .input-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        input, button { padding: 12px; border-radius: 5px; border: 1px solid #444; background: #2b2b2b; color: #fff; }
+        button { background: #d4af37; color: #000; font-weight: bold; cursor: pointer; grid-column: span 2; }
+        .result-card { background: #252525; padding: 20px; border-left: 4px solid #d4af37; margin-top: 20px; display: none; }
+        .badge { background: #d4af37; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-<div class="app">
-    <header>
-        <h1>🕉️ ЧИНТА МАНИ</h1>
-        <p>Ведическая Нумерологическая Система</p>
-    </header>
-
-    <div class="input-group">
-        <input type="text" id="name" placeholder="Имя">
-        <input type="text" id="surname" placeholder="Фамилия">
-        <input type="date" id="date">
-        <input type="time" id="time" value="12:00">
-        <button onclick="calculate()">РАССЧИТАТЬ</button>
+<div class="container">
+    <h1>🕉️ ЧИНТА МАНИ</h1>
+    <div class="input-section">
+        <input type="text" id="userName" placeholder="Ваше Имя">
+        <input type="date" id="birthDate">
+        <input type="time" id="birthTime" value="12:00">
+        <input type="date" id="partnerDate" placeholder="Дата партнера">
+        <button onclick="runCalculation()">ПОЛУЧИТЬ РАСШИФРОВКУ</button>
     </div>
 
-    <div id="results" class="result-screen">
-        <div class="tabs">
-            <div class="tab active" onclick="showSection('main')">Личность</div>
-            <div class="tab" onclick="showSection('chakras')">Чакры</div>
-            <div class="tab" onclick="showSection('matrix')">Янтра</div>
-            <div class="tab" onclick="showSection('prognosis')">Прогноз</div>
-        </div>
+    <div id="loader" style="display:none; text-align:center;">Анализ кармы...</div>
 
-        <div id="sec-main" class="content">
-            <h2 id="planet-title" style="color:var(--gold); text-align: center;"></h2>
-            <div class="input-group">
-                <div class="cell"> <span id="res-mula"></span> Муланк </div>
-                <div class="cell"> <span id="res-bhagya"></span> Бхагьянк </div>
-                <div class="cell"> <span id="res-nama"></span> Наманк </div>
+    <div id="result" class="result-card">
+        <h2>Результат для <span id="out-name"></span></h2>
+        
+        <div class="grid">
+            <div>
+                <p><strong>Число Души:</strong> <span class="badge" id="out-mula"></span></p>
+                <p><strong>Планета:</strong> <span id="out-planet"></span></p>
+                <p><strong>Камень:</strong> <span id="out-stone"></span></p>
+            </div>
+            <div>
+                <p><strong>Число Судьбы:</strong> <span class="badge" id="out-bhagya"></span></p>
+                <p><strong>Персональный год:</strong> <span class="badge" id="out-year"></span></p>
             </div>
         </div>
 
-        <div id="sec-chakras" class="content" style="display:none">
-            <h3>Энергетический паспорт</h3>
-            <div id="chakra-list"></div>
-        </div>
+        <hr style="border: 0.5px solid #444;">
+        
+        <p><strong>Ваша природа:</strong> <span id="out-trait"></span></p>
+        <p><strong>Кармический урок:</strong> <span id="out-karma"></span></p>
+        <p><strong>Прогноз на год:</strong> <span id="out-y-desc"></span></p>
 
-        <div id="sec-matrix" class="content" style="display:none">
-            <h3 style="text-align: center;">Ведический Квадрат</h3>
-            <div class="matrix-grid" id="matrix-display"></div>
-        </div>
-
-        <div id="sec-prognosis" class="content" style="display:none">
-            <h3>Персональный год: <span id="res-pyear" class="num-badge"></span></h3>
-            <p id="year-desc"></p>
+        <div id="comp-box" style="background: #333; padding: 15px; border-radius: 10px; margin-top: 15px; display:none;">
+            <h3>💞 Совместимость</h3>
+            <p id="out-comp"></p>
         </div>
     </div>
 </div>
 
 <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycby9dkqqspkobVumtKqwKDB5NOL8co7OlWhgIF2Wcq7WXsk3b2pn5A9Sn66yM1TDM8UR/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9dkqqspkobVumtKqwKDB5NOL8co7OlWhgIF2Wcq7WXsk3b2pn5A9Sn66yM1TDM8UR/exec';
 
-    async function calculate() {
-        const payload = {
-            name: document.getElementById('name').value,
-            surname: document.getElementById('surname').value,
-            date: document.getElementById('date').value,
-            time: document.getElementById('time').value
-        };
+    async function runCalculation() {
+        document.getElementById('loader').style.display = 'block';
+        const name = document.getElementById('userName').value;
+        const date = document.getElementById('birthDate').value;
+        const time = document.getElementById('birthTime').value;
+        const pDate = document.getElementById('partnerDate').value;
 
-        const res = await fetch(`${API_URL}?name=${payload.name}&surname=${payload.surname}&date=${payload.date}&time=${payload.time}`);
-        const d = await res.json();
-
-        // Заполнение данных
-        document.getElementById('res-mula').innerText = d.base.mulank;
-        document.getElementById('res-bhagya').innerText = d.base.bhagya;
-        document.getElementById('res-nama').innerText = d.base.namank;
-        document.getElementById('planet-title').innerText = `${d.planets.p} (${d.planets.s})`;
+        const url = `${SCRIPT_URL}?name=${name}&date=${date}&time=${time}&partnerDate=${pDate}`;
         
-        // Матрица
-        const mBody = document.getElementById('matrix-display');
-        mBody.innerHTML = '';
-        const order = [3,6,9,2,5,8,1,4,7]; // Ведический порядок
-        order.forEach(n => {
-            mBody.innerHTML += `<div class="cell">${n.toString().repeat(d.matrix[n]) || '-'}<span>${n}</span></div>`;
-        });
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
 
-        // Чакры
-        const cList = document.getElementById('chakra-list');
-        cList.innerHTML = '';
-        for (let key in d.chakras) {
-            cList.innerHTML += `<div class="chakra-item"><span>${key}</span><span class="num-badge">${d.chakras[key]}</span></div>`;
+            document.getElementById('out-name').innerText = data.base.name;
+            document.getElementById('out-mula').innerText = data.base.mulank;
+            document.getElementById('out-bhagya').innerText = data.base.bhagya;
+            document.getElementById('out-planet').innerText = data.base.planet.name;
+            document.getElementById('out-stone').innerText = data.base.planet.stone;
+            document.getElementById('out-trait').innerText = data.base.planet.trait;
+            document.getElementById('out-karma').innerText = data.base.planet.karma;
+            document.getElementById('out-year').innerText = data.base.pYear;
+            document.getElementById('out-y-desc').innerText = data.base.yearDesc;
+
+            if(data.compatibility) {
+                document.getElementById('comp-box').style.display = 'block';
+                document.getElementById('out-comp').innerText = data.compatibility.score;
+            }
+
+            document.getElementById('result').style.display = 'block';
+        } catch (e) {
+            alert("Ошибка связи с сервером");
         }
-
-        document.getElementById('res-pyear').innerText = d.personalYear;
-        document.getElementById('results').style.display = 'block';
-    }
-
-    function showSection(id) {
-        document.querySelectorAll('.content').forEach(s => s.style.display = 'none');
-        document.getElementById('sec-'+id).style.display = 'block';
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
+        document.getElementById('loader').style.display = 'none';
     }
 </script>
-
 </body>
 </html>
