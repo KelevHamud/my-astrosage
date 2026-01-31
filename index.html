@@ -3,177 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VedicTime Clone</title>
+    <title>ЧИНТА МАНИ — Ведическая Нумерология</title>
     <style>
-        /* 1. ГЛАВНЫЙ СТИЛЬ VEDICTIME (ТЕМНАЯ ТЕМА) */
-        :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --gold: #d4af37;
-            --text-main: #e0e0e0;
-            --border: #333;
-        }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 10px; }
+        :root { --gold: #d4af37; --bg: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; }
+        body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        .app { max-width: 900px; margin: 0 auto; }
+        header { text-align: center; border-bottom: 2px solid var(--gold); padding: 20px; margin-bottom: 20px; }
         
-        /* КОНТЕЙНЕР */
-        .app-container { max-width: 800px; margin: 0 auto; background: var(--card-bg); border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); overflow: hidden; }
+        /* Сетка ввода */
+        .input-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; background: var(--card); padding: 20px; border-radius: 8px; }
+        input, button { padding: 12px; border-radius: 4px; border: 1px solid #333; background: #222; color: white; }
+        button { background: var(--gold); color: black; font-weight: bold; cursor: pointer; border: none; }
 
-        /* ШАПКА */
-        header { background: #000; padding: 20px; text-align: center; border-bottom: 2px solid var(--gold); }
-        h1 { margin: 0; color: var(--gold); font-weight: 300; letter-spacing: 2px; text-transform: uppercase; }
+        /* Табы */
+        .tabs { display: flex; overflow-x: auto; margin-top: 20px; border-bottom: 1px solid var(--gold); }
+        .tab { padding: 10px 20px; cursor: pointer; white-space: nowrap; opacity: 0.6; }
+        .tab.active { opacity: 1; border-bottom: 3px solid var(--gold); font-weight: bold; }
 
-        /* ВВОД ДАННЫХ */
-        .controls { padding: 20px; display: flex; gap: 10px; flex-wrap: wrap; background: #252525; }
-        input { flex: 1; padding: 10px; background: #333; border: 1px solid var(--border); color: white; border-radius: 4px; }
-        button { padding: 10px 20px; background: var(--gold); color: black; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; }
-        button:hover { background: #b59020; }
+        /* Психоматрица */
+        .matrix-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 240px; margin: 20px auto; }
+        .cell { background: #333; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid var(--gold); flex-direction: column; }
+        .cell span { font-size: 10px; color: var(--gold); }
 
-        /* ВКЛАДКИ (TABS) */
-        .tabs { display: flex; border-bottom: 1px solid var(--border); }
-        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; background: #1a1a1a; color: #888; transition: 0.3s; }
-        .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #222; }
-
-        /* КОНТЕНТ */
-        .content-area { padding: 20px; min-height: 300px; }
-        .hidden { display: none; }
-
-        /* ТАБЛИЦА */
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; color: var(--gold); border-bottom: 1px solid var(--border); padding: 10px; }
-        td { padding: 10px; border-bottom: 1px solid #333; }
-
-        /* ГРАФИКА: КАРТА (СЕВЕРНЫЙ СТИЛЬ - CSS HACK) */
-        .kundli-box {
-            position: relative;
-            width: 300px; height: 300px;
-            margin: 20px auto;
-            border: 2px solid var(--gold);
-            background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/North_Indian_Chart_Blank.svg/1024px-North_Indian_Chart_Blank.svg.png');
-            background-size: cover;
-        }
-        /* Позиции домов (упрощенно для примера) */
-        .house { position: absolute; font-size: 10px; color: #777; }
-        .planet-pos { position: absolute; font-size: 12px; font-weight: bold; color: var(--gold); text-shadow: 1px 1px 2px black; }
+        /* Чакры */
+        .chakra-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #333; }
+        .num-badge { background: var(--gold); color: black; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
         
-        /* Координаты для планет в карте (Примерная сетка для Лагны вверху) */
-        .h1 { top: 15%; left: 45%; } /* Лагна */
-        .h2 { top: 5%; left: 20%; }
-        .h3 { top: 15%; left: 5%; }
-        .h4 { top: 45%; left: 15%; }
-        .h5 { top: 75%; left: 5%; }
-        .h6 { top: 85%; left: 20%; }
-        .h7 { top: 75%; left: 45%; }
-        .h10 { top: 45%; left: 80%; }
-        /* И так далее... */
-
+        .result-screen { display: none; }
     </style>
 </head>
 <body>
 
-<div class="app-container">
+<div class="app">
     <header>
-        <h1>🕉️ VedicTime Lite</h1>
+        <h1>🕉️ ЧИНТА МАНИ</h1>
+        <p>Ведическая Нумерологическая Система</p>
     </header>
 
-    <div class="controls">
-        <input type="text" id="name" placeholder="Имя" value="Павел">
+    <div class="input-group">
+        <input type="text" id="name" placeholder="Имя">
+        <input type="text" id="surname" placeholder="Фамилия">
         <input type="date" id="date">
-        <button onclick="loadData()">РАССЧИТАТЬ</button>
+        <input type="time" id="time" value="12:00">
+        <button onclick="calculate()">РАССЧИТАТЬ</button>
     </div>
 
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('chart')">Карта (D1)</div>
-        <div class="tab" onclick="switchTab('table')">Координаты</div>
-        <div class="tab" onclick="switchTab('info')">Трактовка</div>
-    </div>
+    <div id="results" class="result-screen">
+        <div class="tabs">
+            <div class="tab active" onclick="showSection('main')">Личность</div>
+            <div class="tab" onclick="showSection('chakras')">Чакры</div>
+            <div class="tab" onclick="showSection('matrix')">Янтра</div>
+            <div class="tab" onclick="showSection('prognosis')">Прогноз</div>
+        </div>
 
-    <div id="chart" class="content-area">
-        <div style="text-align: center; color: #888;">Ваша карта Раши</div>
-        <div class="kundli-box" id="kundliViz">
+        <div id="sec-main" class="content">
+            <h2 id="planet-title" style="color:var(--gold); text-align: center;"></h2>
+            <div class="input-group">
+                <div class="cell"> <span id="res-mula"></span> Муланк </div>
+                <div class="cell"> <span id="res-bhagya"></span> Бхагьянк </div>
+                <div class="cell"> <span id="res-nama"></span> Наманк </div>
             </div>
-    </div>
+        </div>
 
-    <div id="table" class="content-area hidden">
-        <table id="dataTable">
-            <thead><tr><th>Планета</th><th>Знак</th><th>Градус</th><th>Дом</th></tr></thead>
-            <tbody></tbody>
-        </table>
-    </div>
+        <div id="sec-chakras" class="content" style="display:none">
+            <h3>Энергетический паспорт</h3>
+            <div id="chakra-list"></div>
+        </div>
 
-    <div id="info" class="content-area hidden">
-        <div id="predictions">Нажмите "Рассчитать", чтобы получить трактовку.</div>
+        <div id="sec-matrix" class="content" style="display:none">
+            <h3 style="text-align: center;">Ведический Квадрат</h3>
+            <div class="matrix-grid" id="matrix-display"></div>
+        </div>
+
+        <div id="sec-prognosis" class="content" style="display:none">
+            <h3>Персональный год: <span id="res-pyear" class="num-badge"></span></h3>
+            <p id="year-desc"></p>
+        </div>
     </div>
 </div>
 
 <script>
-    // ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ИЗ GOOGLE (Ту самую, рабочую)
-    const API_URL = 'https://script.google.com/macros/s/AKfycby9dkqqspkobVumtKqwKDB5NOL8co7OlWhgIF2Wcq7WXsk3b2pn5A9Sn66yM1TDM8UR/exec'; 
+    const API_URL = 'https://script.google.com/macros/s/AKfycby9dkqqspkobVumtKqwKDB5NOL8co7OlWhgIF2Wcq7WXsk3b2pn5A9Sn66yM1TDM8UR/exec';
 
-    async function loadData() {
-        const name = document.getElementById('name').value;
-        const date = document.getElementById('date').value;
-        const btn = document.querySelector('button');
+    async function calculate() {
+        const payload = {
+            name: document.getElementById('name').value,
+            surname: document.getElementById('surname').value,
+            date: document.getElementById('date').value,
+            time: document.getElementById('time').value
+        };
 
-        if(!API_URL.includes('http')) { alert("Вы забыли вставить ссылку в код!"); return; }
+        const res = await fetch(`${API_URL}?name=${payload.name}&surname=${payload.surname}&date=${payload.date}&time=${payload.time}`);
+        const d = await res.json();
 
-        btn.innerText = "Загрузка...";
+        // Заполнение данных
+        document.getElementById('res-mula').innerText = d.base.mulank;
+        document.getElementById('res-bhagya').innerText = d.base.bhagya;
+        document.getElementById('res-nama').innerText = d.base.namank;
+        document.getElementById('planet-title').innerText = `${d.planets.p} (${d.planets.s})`;
         
-        try {
-            const res = await fetch(`${API_URL}?name=${name}&date=${date}`);
-            const data = await res.json();
-            
-            renderTable(data.planets);
-            renderChart(data.planets);
-            renderInfo(data.predictions);
+        // Матрица
+        const mBody = document.getElementById('matrix-display');
+        mBody.innerHTML = '';
+        const order = [3,6,9,2,5,8,1,4,7]; // Ведический порядок
+        order.forEach(n => {
+            mBody.innerHTML += `<div class="cell">${n.toString().repeat(d.matrix[n]) || '-'}<span>${n}</span></div>`;
+        });
 
-        } catch (e) {
-            console.error(e);
-            alert("Ошибка загрузки. Проверьте консоль.");
+        // Чакры
+        const cList = document.getElementById('chakra-list');
+        cList.innerHTML = '';
+        for (let key in d.chakras) {
+            cList.innerHTML += `<div class="chakra-item"><span>${key}</span><span class="num-badge">${d.chakras[key]}</span></div>`;
         }
-        btn.innerText = "РАССЧИТАТЬ";
+
+        document.getElementById('res-pyear').innerText = d.personalYear;
+        document.getElementById('results').style.display = 'block';
     }
 
-    function renderTable(planets) {
-        const tbody = document.querySelector('#dataTable tbody');
-        tbody.innerHTML = '';
-        planets.forEach(p => {
-            tbody.innerHTML += `<tr><td>${p.name}</td><td>${p.sign}</td><td>${p.degree}</td><td>${p.house}</td></tr>`;
-        });
-    }
-
-    function renderInfo(preds) {
-        document.getElementById('predictions').innerHTML = preds.map(t => `<p>✨ ${t}</p>`).join('');
-    }
-
-    function renderChart(planets) {
-        // Очистка старых планет
-        const box = document.getElementById('kundliViz');
-        box.innerHTML = ''; 
-
-        // Простая логика отображения (для примера ставим Лагну и Солнце)
-        // Чтобы сделать идеально, нужно прописать координаты всех 12 домов CSS
-        planets.forEach(p => {
-            let cssClass = 'h' + p.house; // Например, h1, h10
-            // Если класс определен в CSS, добавляем планету
-            // (В этом примере определены только основные угловые дома для теста)
-            let el = document.createElement('div');
-            el.className = `planet-pos ${cssClass}`;
-            // Если CSS для дома нет, кидаем в центр (для отладки)
-            if (!document.querySelector(`.${cssClass}`)) el.style = "top: 45%; left: 45%; color: white;"; 
-            
-            // Сокращаем имя (Sun -> Su)
-            let shortName = p.name.substring(0, 2);
-            el.innerText = shortName;
-            
-            box.appendChild(el);
-        });
-    }
-
-    function switchTab(tabId) {
-        document.querySelectorAll('.content-area').forEach(el => el.classList.add('hidden'));
-        document.getElementById(tabId).classList.remove('hidden');
-        
-        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    function showSection(id) {
+        document.querySelectorAll('.content').forEach(s => s.style.display = 'none');
+        document.getElementById('sec-'+id).style.display = 'block';
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         event.target.classList.add('active');
     }
 </script>
