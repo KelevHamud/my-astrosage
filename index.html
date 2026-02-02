@@ -2,97 +2,119 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>CHINTA MANI - Ведический Анализ</title>
+    <title>Chinta Mani Pro — Ведический Портал</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #eee; line-height: 1.6; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: #1e1e1e; padding: 30px; border-radius: 15px; border: 1px solid #d4af37; }
-        h1, h2 { color: #d4af37; text-align: center; }
-        .input-section { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-        input, button { padding: 12px; border-radius: 5px; border: 1px solid #444; background: #2b2b2b; color: #fff; }
-        button { background: #d4af37; color: #000; font-weight: bold; cursor: pointer; grid-column: span 2; }
-        .result-card { background: #252525; padding: 20px; border-left: 4px solid #d4af37; margin-top: 20px; display: none; }
-        .badge { background: #d4af37; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        :root { --gold: #c5a059; --dark: #1a1a1b; --card: #252627; }
+        body { background: var(--dark); color: #e0e0e0; font-family: 'Arial', sans-serif; padding: 20px; }
+        .wrapper { max-width: 900px; margin: auto; }
+        .grid-input { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--gold); }
+        input, button { padding: 12px; border-radius: 6px; border: 1px solid #444; background: #333; color: #fff; }
+        button { background: var(--gold); color: #000; font-weight: bold; cursor: pointer; transition: 0.3s; border: none; }
+        button:hover { background: #e2b86a; }
+        
+        /* Ло-Шу Квадрат */
+        .lo-shu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 300px; margin: 20px auto; }
+        .cell { background: #333; height: 90px; border: 1px solid var(--gold); display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
+        .cell span { position: absolute; bottom: 5px; right: 5px; font-size: 10px; color: var(--gold); }
+        .empty { color: #555; }
+
+        .section { margin-top: 30px; background: var(--card); padding: 20px; border-radius: 10px; }
+        .missing-box { border-left: 4px solid #f44336; padding-left: 15px; margin-top: 10px; }
+        .chakra-tag { background: #444; padding: 5px 10px; border-radius: 20px; font-size: 13px; margin-right: 5px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>🕉️ ЧИНТА МАНИ</h1>
-    <div class="input-section">
-        <input type="text" id="userName" placeholder="Ваше Имя">
-        <input type="date" id="birthDate">
-        <input type="time" id="birthTime" value="12:00">
-        <input type="date" id="partnerDate" placeholder="Дата партнера">
-        <button onclick="runCalculation()">ПОЛУЧИТЬ РАСШИФРОВКУ</button>
+<div class="wrapper">
+    <h1 style="text-align:center; color:var(--gold);">🕉️ CHINTA MANI PRO</h1>
+    
+    <div class="grid-input">
+        <input type="text" id="name" placeholder="Имя">
+        <input type="date" id="date">
+        <input type="time" id="time" value="06:00">
+        <input type="date" id="p_date" placeholder="Дата партнера">
+        <button onclick="calculate()">ПОЛУЧИТЬ ПОЛНЫЙ РАСЧЕТ</button>
     </div>
 
-    <div id="loader" style="display:none; text-align:center;">Анализ кармы...</div>
+    <div id="loading" style="display:none; text-align:center; margin:20px;">Запрашиваю хроники Акаши...</div>
 
-    <div id="result" class="result-card">
-        <h2>Результат для <span id="out-name"></span></h2>
-        
-        <div class="grid">
-            <div>
-                <p><strong>Число Души:</strong> <span class="badge" id="out-mula"></span></p>
-                <p><strong>Планета:</strong> <span id="out-planet"></span></p>
-                <p><strong>Камень:</strong> <span id="out-stone"></span></p>
-            </div>
-            <div>
-                <p><strong>Число Судьбы:</strong> <span class="badge" id="out-bhagya"></span></p>
-                <p><strong>Персональный год:</strong> <span class="badge" id="out-year"></span></p>
-            </div>
+    <div id="results" style="display:none;">
+        <div class="section">
+            <h2>Личность: <span id="res-name"></span></h2>
+            <p><strong>Число Души (Муланк):</strong> <b id="res-mula"></b> (Планета: <span id="res-planet"></span>)</p>
+            <p><strong>Число Судьбы (Бхагьянк):</strong> <b id="res-bhagya"></b></p>
+            <p><strong>Число Имени:</strong> <b id="res-nama"></b></p>
+            <p><i>Характеристика: <span id="res-planet-desc"></span></i></p>
         </div>
 
-        <hr style="border: 0.5px solid #444;">
-        
-        <p><strong>Ваша природа:</strong> <span id="out-trait"></span></p>
-        <p><strong>Кармический урок:</strong> <span id="out-karma"></span></p>
-        <p><strong>Прогноз на год:</strong> <span id="out-y-desc"></span></p>
+        <div class="section">
+            <h3 style="text-align:center;">Квадрат Ло-Шу</h3>
+            <div class="lo-shu" id="lo-shu-grid"></div>
+            <div id="missing-info"></div>
+        </div>
 
-        <div id="comp-box" style="background: #333; padding: 15px; border-radius: 10px; margin-top: 15px; display:none;">
+        <div class="section">
+            <h3>Энергетические центры (Чакры)</h3>
+            <div id="chakra-data"></div>
+        </div>
+
+        <div class="section" id="comp-sec" style="display:none;">
             <h3>💞 Совместимость</h3>
-            <p id="out-comp"></p>
+            <p id="comp-res"></p>
         </div>
     </div>
 </div>
 
 <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9dkqqspkobVumtKqwKDB5NOL8co7OlWhgIF2Wcq7WXsk3b2pn5A9Sn66yM1TDM8UR/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwFiqRdikGj2xpExzMRxin6piodIsf7c5UH1NTZ6AhCWS-2_XsPAPvz4HqGD0RVWqJo/exec';
 
-    async function runCalculation() {
-        document.getElementById('loader').style.display = 'block';
-        const name = document.getElementById('userName').value;
-        const date = document.getElementById('birthDate').value;
-        const time = document.getElementById('birthTime').value;
-        const pDate = document.getElementById('partnerDate').value;
-
-        const url = `${SCRIPT_URL}?name=${name}&date=${date}&time=${time}&partnerDate=${pDate}`;
+    async function calculate() {
+        document.getElementById('loading').style.display = 'block';
+        const url = `${SCRIPT_URL}?name=${document.getElementById('name').value}&date=${document.getElementById('date').value}&time=${document.getElementById('time').value}&p_date=${document.getElementById('p_date').value}`;
         
         try {
             const response = await fetch(url);
-            const data = await response.json();
+            const d = await response.json();
 
-            document.getElementById('out-name').innerText = data.base.name;
-            document.getElementById('out-mula').innerText = data.base.mulank;
-            document.getElementById('out-bhagya').innerText = data.base.bhagya;
-            document.getElementById('out-planet').innerText = data.base.planet.name;
-            document.getElementById('out-stone').innerText = data.base.planet.stone;
-            document.getElementById('out-trait').innerText = data.base.planet.trait;
-            document.getElementById('out-karma').innerText = data.base.planet.karma;
-            document.getElementById('out-year').innerText = data.base.pYear;
-            document.getElementById('out-y-desc').innerText = data.base.yearDesc;
+            document.getElementById('res-name').innerText = d.user.name;
+            document.getElementById('res-mula').innerText = d.user.mulank;
+            document.getElementById('res-bhagya').innerText = d.user.bhagya;
+            document.getElementById('res-nama').innerText = d.user.namank;
+            document.getElementById('res-planet').innerText = d.planet.n;
+            document.getElementById('res-planet-desc').innerText = d.planet.desc;
 
-            if(data.compatibility) {
-                document.getElementById('comp-box').style.display = 'block';
-                document.getElementById('out-comp').innerText = data.compatibility.score;
+            // Ло-Шу
+            const grid = document.getElementById('lo-shu-grid');
+            grid.innerHTML = '';
+            const order = [4,9,2,3,5,7,8,1,6];
+            order.forEach(num => {
+                let val = d.matrix[num] > 0 ? num.toString().repeat(d.matrix[num]) : '-';
+                grid.innerHTML += `<div class="cell ${val==='-'?'empty':''}">${val}<span>${num}</span></div>`;
+            });
+
+            // Пустоты
+            const mInfo = document.getElementById('missing-info');
+            mInfo.innerHTML = '<h4>Кармические пустоты:</h4>';
+            d.missingNodes.forEach(node => {
+                mInfo.innerHTML += `<div class="missing-box"><b>Число ${node.num}:</b> ${node.text}</div>`;
+            });
+
+            // Чакры
+            const chBox = document.getElementById('chakra-data');
+            chBox.innerHTML = '';
+            for(let key in d.chakras) {
+                chBox.innerHTML += `<span class="chakra-tag">${key}: <b>${d.chakras[key]}</b></span>`;
             }
 
-            document.getElementById('result').style.display = 'block';
-        } catch (e) {
-            alert("Ошибка связи с сервером");
-        }
-        document.getElementById('loader').style.display = 'none';
+            // Совместимость
+            if(d.compatibility) {
+                document.getElementById('comp-sec').style.display = 'block';
+                document.getElementById('comp-res').innerText = d.compatibility.status;
+            }
+
+            document.getElementById('results').style.display = 'block';
+        } catch (err) { alert("Ошибка данных"); }
+        document.getElementById('loading').style.display = 'none';
     }
 </script>
 </body>
