@@ -1,288 +1,1092 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ведический Калькулятор: Чинта Мани Pro</title>
-    <style>
-        :root {
-            --gold: #d4af37;
-            --dark-bg: #0f0f0f;
-            --card-bg: #1a1a1a;
-            --text: #e0e0e0;
-            --accent: #ffcc00;
-        }
+import { useState, useEffect } from 'react';
+import { motion } from "framer-motion";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: var(--dark-bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            line-height: 1.5;
-        }
+export default function App() {
+  // State management
+  const [step, setStep] = useState(1);
+  const [birthDate, setBirthDate] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [birthTime, setBirthTime] = useState('');
+  const [birthPlace, setBirthPlace] = useState('');
+  const [partnerBirthDate, setPartnerBirthDate] = useState('');
+  const [partnerFullName, setPartnerFullName] = useState('');
+  const [results, setResults] = useState(null);
+  const [vedicGridData, setVedicGridData] = useState([]);
+  const [personalYear, setPersonalYear] = useState(null);
+  const [compatibilityResult, setCompatibilityResult] = useState(null);
+  const [luckyNumbers, setLuckyNumbers] = useState(null);
+  const [currentDateTime] = useState(new Date(2026, 1, 3)); // Fixed to knowledge cutoff date
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+  // Letter to number mapping (Pythagorean system)
+  const letterMap = {
+    'A': 1, 'J': 1, 'S': 1,
+    'B': 2, 'K': 2, 'T': 2,
+    'C': 3, 'L': 3, 'U': 3,
+    'D': 4, 'M': 4, 'V': 4,
+    'E': 5, 'N': 5, 'W': 5,
+    'F': 6, 'O': 6, 'X': 6,
+    'G': 7, 'P': 7, 'Y': 7,
+    'H': 8, 'Q': 8, 'Z': 8,
+    'I': 9, 'R': 9
+  };
 
-        .input-section {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 15px;
-            border: 1px solid var(--gold);
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
+  // Vowels for Heart's Desire calculation
+  const vowels = ['A', 'E', 'I', 'O', 'U'];
 
-        .input-group { display: flex; flex-direction: column; }
-        label { font-size: 0.8rem; color: var(--gold); margin-bottom: 5px; }
-        input { padding: 10px; border-radius: 5px; border: 1px solid #333; background: #222; color: white; }
+  // Calculate Life Path Number and check for Karmic Debts
+  const calculateLifePath = (date) => {
+    const cleanDate = date.replace(/\D/g, '');
+    let sum = 0;
+    let karmicDebts = [];
+    
+    // Sum all digits
+    for (const char of cleanDate) {
+      sum += parseInt(char);
+    }
+    
+    // Check intermediate sums for karmic debts
+    let current = sum;
+    while (current >= 10) {
+      if ([13, 14, 16, 19].includes(current)) {
+        karmicDebts.push(current);
+      }
+      current = current.toString().split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+    }
+    
+    // Final reduction to single digit
+    while (sum >= 10) {
+      sum = sum.toString().split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+    }
+    
+    return { number: sum, karmicDebts };
+  };
 
-        button {
-            grid-column: 1 / -1;
-            padding: 15px;
-            background: var(--gold);
-            border: none;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+  // Calculate Name Number with karmic debt check
+  const calculateNameNumber = (name) => {
+    const cleanName = name.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    let sum = 0;
+    let karmicDebts = [];
+    
+    for (const char of cleanName) {
+      if (letterMap[char]) {
+        sum += letterMap[char];
+      }
+    }
+    
+    // Check intermediate sums
+    let current = sum;
+    while (current >= 10) {
+      if ([13, 14, 16, 19].includes(current)) {
+        karmicDebts.push(current);
+      }
+      current = current.toString().split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+    }
+    
+    // Final reduction
+    while (sum >= 10) {
+      sum = sum.toString().split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+    }
+    
+    return { number: sum, karmicDebts };
+  };
 
-        button:hover { background: var(--accent); }
+  // Calculate Heart's Desire Number (vowels only)
+  const calculateHeartDesire = (name) => {
+    const cleanName = name.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    let sum = 0;
+    
+    for (const char of cleanName) {
+      if (vowels.includes(char) && letterMap[char]) {
+        sum += letterMap[char];
+      }
+    }
+    
+    while (sum >= 10) {
+      sum = sum.toString().split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+    }
+    
+    return sum;
+  };
 
-        .results { display: none; }
+  // Calculate Personality Number (consonants only)
+  const calculatePersonality = (name) => {
+    const cleanName = name.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    let sum = 0;
+    
+    for (const char of cleanName) {
+      if (!vowels.includes(char) && letterMap[char]) {
+        sum += letterMap[char];
+      }
+    }
+    
+    while (sum >= 10) {
+      sum = sum.toString().split('').reduce((acc, digit) => acc + parseInt(digit), 0);
+    }
+    
+    return sum;
+  };
 
-        .card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--gold);
-        }
+  // Calculate Vedic Grid (frequency of digits 1-9)
+  const calculateVedicGrid = (date, name) => {
+    const cleanDate = date.replace(/\D/g, '');
+    const cleanName = name.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    
+    // Initialize grid with zeros for digits 1-9
+    const grid = Array(9).fill(0);
+    
+    // Process date digits
+    for (const char of cleanDate) {
+      const digit = parseInt(char);
+      if (digit >= 1 && digit <= 9) {
+        grid[digit - 1]++;
+      }
+    }
+    
+    // Process name letters
+    for (const char of cleanName) {
+      if (letterMap[char]) {
+        const digit = letterMap[char];
+        grid[digit - 1]++;
+      }
+    }
+    
+    // Format for chart
+    return grid.map((count, index) => ({
+      digit: (index + 1).toString(),
+      count,
+      planet: getPlanetName(index + 1)
+    }));
+  };
 
-        /* Матрица */
-        .loshu-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            max-width: 300px;
-            margin: 20px auto;
-        }
-
-        .loshu-cell {
-            aspect-ratio: 1;
-            background: #222;
-            border: 1px solid #444;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--accent);
-            position: relative;
-        }
-
-        .loshu-cell small {
-            position: absolute;
-            top: 2px;
-            right: 5px;
-            font-size: 0.6rem;
-            color: #555;
-        }
-
-        .yoga-tag {
-            display: inline-block;
-            background: #332b00;
-            color: #ffcc00;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            margin: 3px;
-        }
-
-        .highlight { color: var(--gold); font-weight: bold; }
-        .forecast-box { background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; margin-top: 10px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h1 style="text-align:center; color:var(--gold)">🕉️ ЧИНТА МАНИ PRO</h1>
-
-    <div class="input-section">
-        <div class="input-group"><label>Имя</label><input type="text" id="uName" placeholder="Иван"></div>
-        <div class="input-group"><label>Дата рождения</label><input type="date" id="uDob"></div>
-        <div class="input-group"><label>Время (00:00)</label><input type="time" id="uTob" value="12:00"></div>
-        <button onclick="mainCalculation()">УЗНАТЬ ПРЕДНАЗНАЧЕНИЕ</button>
-    </div>
-
-    <div id="resBlock" class="results">
-        
-        <div class="card">
-            <h3>💎 Ваши Ключевые Числа</h3>
-            <p>Число Души (Муланк): <span id="outMula" class="highlight"></span></p>
-            <p>Число Судьбы (Бхагьянк): <span id="outBhagya" class="highlight"></span></p>
-            <p>Число Имени (Наманк): <span id="outNama" class="highlight"></span></p>
-            <p id="outPlanet" style="font-style: italic; color: #aaa;"></p>
-        </div>
-
-        <div class="card">
-            <h3 style="text-align:center">☯️ Квадрат Ло-Шу</h3>
-            <div class="loshu-grid" id="outLoshu"></div>
-            <div id="outYogas" style="text-align:center"></div>
-        </div>
-
-        <div class="card" style="border-left-color: #ff4444;">
-            <h3>⚠️ Кармические пустоты</h3>
-            <div id="outMissing" style="font-size: 0.9rem;"></div>
-        </div>
-
-        <div class="card" style="border-left-color: #4caf50;">
-            <h3>📅 Личный Прогноз</h3>
-            <div class="forecast-box">
-                <p>Ваш персональный год: <span id="outPYear" class="highlight"></span></p>
-                <p id="outPYearDesc" style="font-size:0.9rem"></p>
-            </div>
-            <div class="grid-2" style="margin-top:10px">
-                <div class="forecast-box">
-                    <small>Личный месяц</small><br><b id="outPMonth" style="font-size:1.2rem"></b>
-                </div>
-                <div class="forecast-box">
-                    <small>Личный день</small><br><b id="outPDay" style="font-size:1.2rem"></b>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>🌀 Энергетические центры (Чакры)</h3>
-            <div id="outChakras" style="font-size:0.9rem"></div>
-        </div>
-
-    </div>
-</div>
-
-<script>
-    // --- ДАННЫЕ ---
-    const planetData = {
-        1: "Солнце: Лидерство, эго, власть.",
-        2: "Луна: Интуиция, эмоции, мягкость.",
-        3: "Юпитер: Знания, удача, учительство.",
-        4: "Раху: Новаторство, риск, иллюзии.",
-        5: "Меркурий: Логика, речь, бизнес.",
-        6: "Венера: Красота, любовь, комфорт.",
-        7: "Кету: Мудрость, интуиция, мистика.",
-        8: "Сатурн: Карма, труд, дисциплина.",
-        9: "Марс: Энергия, воля, победа."
+  // Get planet name for digit
+  const getPlanetName = (digit) => {
+    const planets = {
+      1: 'Солнце', 2: 'Луна', 3: 'Юпитер', 4: 'Раху', 
+      5: 'Меркурий', 6: 'Венера', 7: 'Кету', 8: 'Сатурн', 9: 'Марс'
     };
+    return planets[digit] || '';
+  };
 
-    const yearForecasts = {
-        1: "<b>Год Солнца (Начало):</b> Время для новых проектов. Ставьте цели на 9 лет вперед. Не бойтесь одиночества в решениях.",
-        2: "<b>Год Луны (Развитие):</b> Время дипломатии. Налаживайте связи, ищите партнеров, слушайте интуицию.",
-        3: "<b>Год Юпитера (Творчество):</b> Год удачи и обучения. Делитесь знаниями, заявляйте о себе миру.",
-        4: "<b>Год Раху (Труд):</b> Год структуры. Нужно много работать и наводить порядок в жизни и финансах.",
-        5: "<b>Год Меркурия (Перемены):</b> Время путешествий, коммуникаций и быстрых результатов. Будьте гибкими.",
-        6: "<b>Год Венеры (Дом):</b> Время семьи и любви. Занимайтесь уютом, здоровьем близких и красотой.",
-        7: "<b>Год Кету (Пауза):</b> Духовный год. Остановка для переосмысления. Хорошо для медитаций и учебы.",
-        8: "<b>Год Сатурна (Результат):</b> Сбор урожая. Карма возвращает долги. Финансовый успех при должной дисциплине.",
-        9: "<b>Год Марса (Завершение):</b> Очистка. Выбрасывайте лишнее, закрывайте кредиты и старые отношения."
+  // Calculate Personal Year
+  const calculatePersonalYear = (lifePath) => {
+    const yearDigits = currentDateTime.getFullYear().toString().split('').map(Number);
+    const yearSum = yearDigits.reduce((a, b) => a + b, 0);
+    let sum = lifePath + yearSum;
+    
+    while (sum >= 10) {
+      sum = sum.toString().split('').reduce((a, b) => a + parseInt(b), 0);
+    }
+    
+    return sum;
+  };
+
+  // Calculate Personal Month
+  const calculatePersonalMonth = (personalYear) => {
+    const month = currentDateTime.getMonth() + 1; // Months are 0-indexed
+    let sum = personalYear + month;
+    
+    while (sum >= 10) {
+      sum = sum.toString().split('').reduce((a, b) => a + parseInt(b), 0);
+    }
+    
+    return sum;
+  };
+
+  // Calculate compatibility based on Life Path numbers
+  const calculateCompatibility = (userLifePath, partnerLifePath) => {
+    // Simplified compatibility logic based on Vedic principles
+    const sameNumber = userLifePath === partnerLifePath;
+    const complementary = (
+      (userLifePath === 1 && [3, 5].includes(partnerLifePath)) ||
+      (userLifePath === 2 && [6, 8].includes(partnerLifePath)) ||
+      (userLifePath === 3 && [1, 5, 9].includes(partnerLifePath)) ||
+      (userLifePath === 4 && [8].includes(partnerLifePath)) ||
+      (userLifePath === 5 && [1, 3, 6].includes(partnerLifePath)) ||
+      (userLifePath === 6 && [2, 5, 9].includes(partnerLifePath)) ||
+      (userLifePath === 7 && [1, 5].includes(partnerLifePath)) ||
+      (userLifePath === 8 && [4, 6].includes(partnerLifePath)) ||
+      (userLifePath === 9 && [3, 6].includes(partnerLifePath))
+    );
+    
+    const challenging = (
+      (userLifePath === 1 && [4, 9].includes(partnerLifePath)) ||
+      (userLifePath === 2 && [5, 9].includes(partnerLifePath)) ||
+      (userLifePath === 3 && [4, 8].includes(partnerLifePath)) ||
+      (userLifePath === 4 && [1, 3, 9].includes(partnerLifePath)) ||
+      (userLifePath === 5 && [2, 4].includes(partnerLifePath)) ||
+      (userLifePath === 6 && [1, 7].includes(partnerLifePath)) ||
+      (userLifePath === 7 && [6, 8].includes(partnerLifePath)) ||
+      (userLifePath === 8 && [1, 3, 9].includes(partnerLifePath)) ||
+      (userLifePath === 9 && [1, 4, 8].includes(partnerLifePath))
+    );
+    
+    if (sameNumber) return { type: 'Идеальная гармония', description: 'Ваши энергии полностью дополняют друг друга. Отношения будут легкими и гармоничными.' };
+    if (complementary) return { type: 'Сильная совместимость', description: 'Ваши энергии хорошо сочетаются, создавая баланс и взаимопонимание.' };
+    if (challenging) return { type: 'Требуется работа', description: 'Ваши энергии могут конфликтовать. Отношения потребуют терпения и компромиссов.' };
+    return { type: 'Нейтральная совместимость', description: 'Ваши энергии не конфликтуют, но и не усиливают друг друга. Успех зависит от ваших усилий.' };
+  };
+
+  // Generate lucky numbers recommendations
+  const generateLuckyNumbers = (lifePath, nameNumber, vedicGrid) => {
+    // Find strongest and weakest numbers from Vedic Grid
+    const strongestDigit = vedicGrid.reduce((max, item) => item.count > max.count ? item : max, vedicGrid[0]).digit;
+    const weakestDigit = vedicGrid.reduce((min, item) => item.count < min.count ? item : min, vedicGrid[0]).digit;
+    
+    // Career recommendations
+    const careerNumbers = [1, 3, 8].includes(parseInt(strongestDigit)) ? 
+      strongestDigit : [1, 3, 8].includes(lifePath) ? lifePath.toString() : '1, 3, 8';
+    
+    // Health recommendations
+    const healthNumbers = [2, 6, 9].includes(parseInt(strongestDigit)) ? 
+      strongestDigit : [2, 6].includes(lifePath) ? lifePath.toString() : '2, 6';
+    
+    // Relationship recommendations
+    const relationshipNumbers = [2, 6].includes(parseInt(strongestDigit)) ? 
+      strongestDigit : [2, 6].includes(nameNumber) ? nameNumber.toString() : '2, 6';
+    
+    return {
+      strongest: strongestDigit,
+      weakest: weakestDigit,
+      career: careerNumbers,
+      health: healthNumbers,
+      relationships: relationshipNumbers
     };
+  };
 
-    const alphabet = {'а':1,'и':1,'й':1,'ы':1,'б':2,'к':2,'р':2,'г':3,'л':3,'с':3,'д':4,'м':4,'т':4,'е':5,'н':5,'х':5,'в':6,'у':6,'о':7,'з':7,'ц':7,'ф':8,'п':8,'ж':8,'ш':8,'ь':0,'ъ':0,'э':5,'ю':1,'я':2};
-
-    // --- ЛОГИКА ---
-    function sum(n) {
-        let s = n.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);
-        return s > 9 ? sum(s) : s;
+  // Process all calculations when data is submitted
+  const processCalculations = () => {
+    if (!birthDate) return;
+    
+    // Calculate basic numbers
+    const lifePathResult = calculateLifePath(birthDate);
+    const nameResult = fullName ? calculateNameNumber(fullName) : null;
+    const heartDesire = fullName ? calculateHeartDesire(fullName) : null;
+    const personality = fullName ? calculatePersonality(fullName) : null;
+    
+    // Calculate Vedic Grid if name is provided
+    let gridData = [];
+    if (fullName) {
+      gridData = calculateVedicGrid(birthDate, fullName);
+      setVedicGridData(gridData);
     }
-
-    function mainCalculation() {
-        const name = document.getElementById('uName').value;
-        const dobStr = document.getElementById('uDob').value;
-        const tobStr = document.getElementById('uTob').value;
-
-        if(!dobStr) return alert("Введите дату!");
-
-        const dObj = new Date(dobStr);
-        let d = dObj.getDate();
-        const m = dObj.getMonth() + 1;
-        const y = dObj.getFullYear();
-        const h = parseInt(tobStr.split(':')[0]);
-
-        // Ведическая поправка (День меняется в 6 утра)
-        if (h < 6) d = (d - 1 === 0) ? 30 : d - 1;
-
-        // 1. Основные числа
-        const mula = sum(d);
-        const bhagya = sum(d + m + y);
-        
-        let nSum = 0;
-        name.toLowerCase().split('').forEach(l => nSum += (alphabet[l] || 0));
-        const nama = sum(nSum);
-
-        document.getElementById('outMula').innerText = mula;
-        document.getElementById('outBhagya').innerText = bhagya;
-        document.getElementById('outNama').innerText = nama || "—";
-        document.getElementById('outPlanet').innerText = planetData[mula];
-
-        // 2. Ло-Шу
-        const full = d.toString() + m.toString() + y.toString();
-        const counts = {};
-        [4,9,2,3,5,7,8,1,6].forEach(num => {
-            counts[num] = full.split(num).length - 1;
-        });
-
-        renderLoshu(counts);
-
-        // 3. Прогноз
-        const now = new Date();
-        const curY = now.getFullYear();
-        const pYear = sum(d + m + sum(curY));
-        const pMonth = sum(pYear + (now.getMonth() + 1));
-        const pDay = sum(pMonth + now.getDate());
-
-        document.getElementById('outPYear').innerText = pYear;
-        document.getElementById('outPYearDesc').innerHTML = yearForecasts[pYear];
-        document.getElementById('outPMonth').innerText = pMonth;
-        document.getElementById('outPDay').innerText = pDay;
-
-        // 4. Чакры
-        document.getElementById('outChakras').innerHTML = `
-            <p>🔴 Муладхара: <b>${sum(d+m+y)}</b> - Жизненная опора</p>
-            <p>🟠 Свадхистана: <b>${sum(d+m)}</b> - Творческий потенциал</p>
-            <p>🟡 Манипура: <b>${sum(d+y)}</b> - Социальная реализация</p>
-            <p>🟢 Анахата: <b>${sum(m+y)}</b> - Сердечный центр</p>
-        `;
-
-        document.getElementById('resBlock').style.display = 'block';
+    
+    // Calculate Personal Year and Month
+    const pYear = calculatePersonalYear(lifePathResult.number);
+    const pMonth = calculatePersonalMonth(pYear);
+    setPersonalYear({ year: pYear, month: pMonth });
+    
+    // Calculate lucky numbers if possible
+    if (fullName && gridData.length > 0) {
+      const luckyNums = generateLuckyNumbers(
+        lifePathResult.number, 
+        nameResult?.number, 
+        gridData
+      );
+      setLuckyNumbers(luckyNums);
     }
-
-    function renderLoshu(c) {
-        const order = [4,9,2,3,5,7,8,1,6];
-        const grid = document.getElementById('outLoshu');
-        const miss = document.getElementById('outMissing');
-        const yogas = document.getElementById('outYogas');
-        
-        grid.innerHTML = ''; miss.innerHTML = ''; yogas.innerHTML = '';
-
-        const meanings = {1:"Эго", 2:"Чувства", 3:"Ум", 4:"Порядок", 5:"Баланс", 6:"Уют", 7:"Опыт", 8:"Деньги", 9:"Амбиции"};
-
-        order.forEach(n => {
-            let val = c[n] > 0 ? n.toString().repeat(c[n]) : ".";
-            grid.innerHTML += `<div class="loshu-cell"><small>${n}</small>${val}</div>`;
-            if(c[n] === 0) miss.innerHTML += `• <b>Нет ${n}:</b> Недостаток энергии ${meanings[n]}.<br>`;
-        });
-
-        if(c[4] && c[9] && c[2]) yogas.innerHTML += `<span class="yoga-tag">Линия Интеллекта</span>`;
-        if(c[3] && c[5] && c[7]) yogas.innerHTML += `<span class="yoga-tag">Линия Эмоций</span>`;
-        if(c[8] && c[1] && c[6]) yogas.innerHTML += `<span class="yoga-tag">Линия Бизнеса</span>`;
+    
+    // Set results
+    setResults({
+      lifePath: lifePathResult.number,
+      nameNumber: nameResult?.number || null,
+      heartDesire,
+      personality,
+      karmicDebts: [...new Set([...lifePathResult.karmicDebts, ...(nameResult?.karmicDebts || [])])]
+    });
+    
+    // Calculate compatibility if partner data is provided
+    if (partnerBirthDate && birthDate) {
+      const partnerLifePath = calculateLifePath(partnerBirthDate).number;
+      const compatibility = calculateCompatibility(results?.lifePath || lifePathResult.number, partnerLifePath);
+      setCompatibilityResult({
+        ...compatibility,
+        partnerLifePath
+      });
     }
-</script>
+    
+    // Move to results view
+    setStep(5);
+  };
 
-</body>
-</html>
+  // Form submission handler
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    processCalculations();
+  };
+
+  // Step navigation
+  const nextStep = () => {
+    if (step === 1 && !birthDate) return;
+    if (step === 2 && !fullName) return;
+    setStep(prev => prev + 1);
+  };
+
+  const prevStep = () => {
+    setStep(prev => prev - 1);
+  };
+
+  // Reset calculator
+  const resetCalculator = () => {
+    setStep(1);
+    setBirthDate('');
+    setFullName('');
+    setBirthTime('');
+    setBirthPlace('');
+    setPartnerBirthDate('');
+    setPartnerFullName('');
+    setResults(null);
+    setVedicGridData([]);
+    setPersonalYear(null);
+    setCompatibilityResult(null);
+    setLuckyNumbers(null);
+  };
+
+  // Render planet descriptions for Vedic Grid
+  const renderPlanetDescription = (digit) => {
+    const descriptions = {
+      '1': 'Лидерство и индивидуальность. Вы рождены, чтобы быть в центре внимания, брать инициативу и проявлять свою уникальную личность.',
+      '2': 'Чувствительность и сотрудничество. Вы обладаете тонкой интуицией и высокой эмпатией. Вам легко налаживать отношения и работать в команде.',
+      '3': 'Творчество и общение. Ваш ум остр и жив, вы любите делиться идеями и выражать себя через слова, музыку или искусство.',
+      '4': 'Стабильность и труд. Вы цените порядок, структуру и надёжность. Ваша сила — в усердии, трудолюбии и способности создавать прочные основы.',
+      '5': 'Свобода и адаптивность. Вы любите перемены, новые впечатления и путешествия. Ваш ум гибок, вы легко адаптируетесь к новым условиям.',
+      '6': 'Гармония и забота. Вы обладаете тонким вкусом, любите красоту и создаёте уют вокруг себя. Вы заботитесь о близких и стремитесь к гармонии.',
+      '7': 'Анализ и духовность. Вы склонны к глубокому размышлению, анализу и поиску смысла. Вам интересны тайны, наука и духовные практики.',
+      '8': 'Власть и материальный успех. Вы обладаете сильной волей, дисциплиной и способностью к управлению ресурсами.',
+      '9': 'Энергия и служение. Вы полны энергии, решимости и смелости. Вы готовы браться за сложные задачи и бороться за справедливость.'
+    };
+    return descriptions[digit] || '';
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 font-sans">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-amber-600 to-orange-800 text-white py-6 shadow-lg">
+        <div className="container mx-auto px-4 text-center">
+          <motion.h1 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-5xl font-bold mb-2"
+          >
+            Ведический Нумерологический Калькулятор
+          </motion.h1>
+          <p className="text-lg md:text-xl opacity-90 max-w-3xl mx-auto">
+            Откройте для себя свою персональную нумерологическую карту, временные циклы и совместимость с партнером
+          </p>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Progress Steps */}
+        <div className="flex justify-between mb-12 max-w-4xl mx-auto">
+          {[1, 2, 3, 4].map((s) => (
+            <motion.div
+              key={s}
+              initial={{ scale: 0.8, opacity: 0.5 }}
+              animate={{ 
+                scale: step >= s ? 1.1 : 1,
+                opacity: step >= s ? 1 : 0.7,
+                backgroundColor: step >= s ? '#f59e0b' : '#fca5a5'
+              }}
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-md ${
+                step === s ? 'ring-4 ring-amber-300' : ''
+              }`}
+            >
+              {s}
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Step 1: Birth Date */}
+        {step === 1 && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white rounded-2xl shadow-xl p-6 md:p-8 max-w-2xl mx-auto"
+          >
+            <h2 className="text-2xl font-bold text-amber-800 mb-6 text-center">Шаг 1: Дата рождения</h2>
+            <p className="text-gray-700 mb-6 text-center">
+              Введите вашу дату рождения для расчета Числа Судьбы и анализа жизненного пути
+            </p>
+            
+            <div className="flex flex-col items-center">
+              <div className="w-full max-w-md">
+                <label htmlFor="birthDate" className="block text-lg font-medium text-gray-700 mb-2">
+                  Дата рождения
+                </label>
+                <input
+                  type="date"
+                  id="birthDate"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg"
+                  max="2026-12-31"
+                />
+              </div>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={nextStep}
+                disabled={!birthDate}
+                className={`mt-8 px-8 py-3 rounded-full font-bold text-lg shadow-lg transition-all ${
+                  birthDate 
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Далее →
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 2: Full Name */}
+        {step === 2 && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white rounded-2xl shadow-xl p-6 md:p-8 max-w-2xl mx-auto"
+          >
+            <h2 className="text-2xl font-bold text-amber-800 mb-6 text-center">Шаг 2: Полное имя</h2>
+            <p className="text-gray-700 mb-6 text-center">
+              Введите ваше полное имя (имя, отчество, фамилия) для расчета Числа Имени, Сердечного и Личного чисел
+            </p>
+            
+            <div className="flex flex-col items-center">
+              <div className="w-full max-w-md">
+                <label htmlFor="fullName" className="block text-lg font-medium text-gray-700 mb-2">
+                  Полное имя при рождении
+                </label>
+                <input
+                  type="text"
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Иван Иванович Иванов"
+                  className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg"
+                />
+              </div>
+              
+              <div className="flex space-x-4 mt-8">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={prevStep}
+                  className="px-6 py-3 rounded-full font-bold text-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition-all"
+                >
+                  ← Назад
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={nextStep}
+                  disabled={!fullName}
+                  className={`px-8 py-3 rounded-full font-bold text-lg shadow-lg transition-all ${
+                    fullName 
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Далее →
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 3: Birth Time and Place */}
+        {step === 3 && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white rounded-2xl shadow-xl p-6 md:p-8 max-w-2xl mx-auto"
+          >
+            <h2 className="text-2xl font-bold text-amber-800 mb-6 text-center">Шаг 3: Время и место рождения (опционально)</h2>
+            <p className="text-gray-700 mb-6 text-center">
+              Для углубленного анализа временных циклов (Вимшоттари Даша) и точного анализа совместимости
+            </p>
+            
+            <div className="flex flex-col items-center space-y-6">
+              <div className="w-full max-w-md">
+                <label htmlFor="birthTime" className="block text-lg font-medium text-gray-700 mb-2">
+                  Время рождения
+                </label>
+                <input
+                  type="time"
+                  id="birthTime"
+                  value={birthTime}
+                  onChange={(e) => setBirthTime(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg"
+                />
+              </div>
+              
+              <div className="w-full max-w-md">
+                <label htmlFor="birthPlace" className="block text-lg font-medium text-gray-700 mb-2">
+                  Место рождения
+                </label>
+                <input
+                  type="text"
+                  id="birthPlace"
+                  value={birthPlace}
+                  onChange={(e) => setBirthPlace(e.target.value)}
+                  placeholder="Москва, Россия"
+                  className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg"
+                />
+              </div>
+              
+              <div className="flex space-x-4 mt-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={prevStep}
+                  className="px-6 py-3 rounded-full font-bold text-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition-all"
+                >
+                  ← Назад
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={nextStep}
+                  className="px-8 py-3 rounded-full font-bold text-lg bg-gradient-to-r from-amber-300 to-orange-400 text-white hover:from-amber-400 hover:to-orange-500 shadow-lg transition-all"
+                >
+                  Пропустить →
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={nextStep}
+                  className="px-8 py-3 rounded-full font-bold text-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700 shadow-lg transition-all"
+                >
+                  Далее →
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 4: Partner Data */}
+        {step === 4 && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white rounded-2xl shadow-xl p-6 md:p-8 max-w-2xl mx-auto"
+          >
+            <h2 className="text-2xl font-bold text-amber-800 mb-6 text-center">Шаг 4: Данные партнера (опционально)</h2>
+            <p className="text-gray-700 mb-6 text-center">
+              Для анализа совместимости в отношениях
+            </p>
+            
+            <div className="flex flex-col items-center space-y-6">
+              <div className="w-full max-w-md">
+                <label htmlFor="partnerBirthDate" className="block text-lg font-medium text-gray-700 mb-2">
+                  Дата рождения партнера
+                </label>
+                <input
+                  type="date"
+                  id="partnerBirthDate"
+                  value={partnerBirthDate}
+                  onChange={(e) => setPartnerBirthDate(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg"
+                  max="2026-12-31"
+                />
+              </div>
+              
+              <div className="w-full max-w-md">
+                <label htmlFor="partnerFullName" className="block text-lg font-medium text-gray-700 mb-2">
+                  Полное имя партнера
+                </label>
+                <input
+                  type="text"
+                  id="partnerFullName"
+                  value={partnerFullName}
+                  onChange={(e) => setPartnerFullName(e.target.value)}
+                  placeholder="Мария Сергеевна Петрова"
+                  className="w-full px-4 py-3 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-lg"
+                />
+              </div>
+              
+              <div className="flex space-x-4 mt-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={prevStep}
+                  className="px-6 py-3 rounded-full font-bold text-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition-all"
+                >
+                  ← Назад
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleSubmit}
+                  className="px-8 py-3 rounded-full font-bold text-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700 shadow-lg transition-all"
+                >
+                  Рассчитать →
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Results View */}
+        {step === 5 && results && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-12"
+          >
+            {/* Personal Numbers Section */}
+            <section className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+              <h2 className="text-3xl font-bold text-amber-800 mb-6 text-center">Ваша Персональная Нумерологическая Карта</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                {/* Life Path Number */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-xl border-2 border-amber-200 text-center"
+                >
+                  <div className="text-5xl font-bold text-amber-700 mb-2">{results.lifePath}</div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">Число Судьбы</h3>
+                  <p className="text-gray-600">
+                    Основной жизненный путь, предназначение, врожденные таланты и главные уроки жизни. Связано с энергией Солнца.
+                  </p>
+                </motion.div>
+                
+                {/* Name Number */}
+                {results.nameNumber && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-xl border-2 border-amber-200 text-center"
+                  >
+                    <div className="text-5xl font-bold text-amber-700 mb-2">{results.nameNumber}</div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Число Имени</h3>
+                    <p className="text-gray-600">
+                      То, как вас воспринимает мир; ваши способности к общению, влиянию и социальная роль.
+                    </p>
+                  </motion.div>
+                )}
+                
+                {/* Heart's Desire Number */}
+                {results.heartDesire && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-xl border-2 border-amber-200 text-center"
+                  >
+                    <div className="text-5xl font-bold text-amber-700 mb-2">{results.heartDesire}</div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Сердечное Число</h3>
+                    <p className="text-gray-600">
+                      Внутренние мотивации, скрытые желания, истинные потребности и внутренняя сторона личности.
+                    </p>
+                  </motion.div>
+                )}
+                
+                {/* Personality Number */}
+                {results.personality && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-xl border-2 border-amber-200 text-center"
+                  >
+                    <div className="text-5xl font-bold text-amber-700 mb-2">{results.personality}</div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Личное Число</h3>
+                    <p className="text-gray-600">
+                      Ваша внешняя личность, социальный образ, манеры и поведение в обществе.
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+              
+              {/* Karmic Debts */}
+              {results.karmicDebts.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-xl mb-8"
+                >
+                  <h3 className="text-2xl font-bold text-amber-800 mb-3 flex items-center">
+                    <span>⚠️ Кармические Долги</span>
+                  </h3>
+                  <div className="flex flex-wrap gap-3 mb-4">
+                    {results.karmicDebts.map((debt, index) => (
+                      <span 
+                        key={index} 
+                        className="bg-amber-200 text-amber-900 px-4 py-2 rounded-full font-bold text-lg"
+                      >
+                        {debt}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-gray-700">
+                    Эти числа указывают на незавершенные задачи из прошлых жизней, требующие осознанной работы в текущей жизни. 
+                    Кармический долг 13 часто связывают с предательством, 14 — с гордыней, 16 — с недостатком ответственности, а 19 — с материализмом и эгоизмом.
+                  </p>
+                </motion.div>
+              )}
+            </section>
+            
+            {/* Vedic Grid Section */}
+            {vedicGridData.length > 0 && (
+              <section className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+                <h2 className="text-3xl font-bold text-amber-800 mb-6 text-center">Ведическая Нумерологическая Матрица</h2>
+                <p className="text-gray-700 text-center mb-8 max-w-3xl mx-auto">
+                  Визуальное представление частоты каждой цифры в вашей нумерологической карте. Высокие столбцы указывают на сильные стороны, низкие — на области для развития.
+                </p>
+                
+                <div className="h-80 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={vedicGridData} 
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#fca5a5" />
+                      <XAxis 
+                        dataKey="digit" 
+                        label={{ value: 'Цифра', position: 'insideBottom', offset: -5 }} 
+                        stroke="#92400e"
+                        fontSize={14}
+                        fontWeight={600}
+                      />
+                      <YAxis 
+                        label={{ value: 'Частота', angle: -90, position: 'insideLeft' }} 
+                        stroke="#92400e"
+                        fontSize={14}
+                      />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#fff9e6', border: '1px solid #f59e0b', borderRadius: '8px' }}
+                        labelStyle={{ fontWeight: 'bold' }}
+                        formatter={(value, name) => [value, `Цифра ${name}`]}
+                      />
+                      <Legend />
+                      <Bar 
+                        dataKey="count" 
+                        fill="#f59e0b" 
+                        radius={[10, 10, 0, 0]}
+                        name="Частота"
+                      >
+                        {vedicGridData.map((entry, index) => (
+                          <motion.rect
+                            initial={{ scaleY: 0 }}
+                            animate={{ scaleY: 1 }}
+                            transition={{ delay: index * 0.1 }}
+                            key={`bar-${index}`}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                  {vedicGridData.map((item, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 + index * 0.1 }}
+                      className={`p-4 rounded-xl ${
+                        item.count > 3 ? 'bg-gradient-to-br from-amber-100 to-orange-50' : 
+                        item.count === 0 ? 'bg-gray-50' : 'bg-white'
+                      } border border-amber-200`}
+                    >
+                      <div className="flex items-center mb-2">
+                        <div className="text-3xl font-bold text-amber-700 mr-3">{item.digit}</div>
+                        <div>
+                          <div className="font-bold text-gray-800">{item.planet}</div>
+                          <div className="text-sm text-amber-600">Частота: {item.count}</div>
+                        </div>
+                      </div>
+                      <p className="text-gray-600 text-sm">{renderPlanetDescription(item.digit)}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+            )}
+            
+            {/* Time Cycles Section */}
+            {personalYear && (
+              <section className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+                <h2 className="text-3xl font-bold text-amber-800 mb-6 text-center">Анализ Временных Циклов</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                  {/* Personal Year */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-xl border-2 border-amber-200 text-center"
+                  >
+                    <div className="text-6xl font-bold text-amber-700 mb-3">{personalYear.year}</div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-3">Личный Год ({currentDateTime.getFullYear()})</h3>
+                    <p className="text-gray-700">
+                      {personalYear.year === 1 && "Год новых начинаний, лидерства и независимости. Отличное время для запуска проектов и принятия решений."}
+                      {personalYear.year === 2 && "Год сотрудничества, чувствительности и интуиции. Фокус на отношениях, семье и эмоциональном балансе."}
+                      {personalYear.year === 3 && "Год творчества, общения и социальной активности. Благоприятное время для самовыражения и финансового роста."}
+                      {personalYear.year === 4 && "Год стабильности, труда и системности. Время закладывать прочные основы и работать над долгосрочными целями."}
+                      {personalYear.year === 5 && "Год перемен, свободы и приключений. Отличное время для путешествий, обучения и новых впечатлений."}
+                      {personalYear.year === 6 && "Год гармонии, любви и ответственности. Фокус на семье, отношениях и создании уюта."}
+                      {personalYear.year === 7 && "Год анализа, духовности и самопознания. Время для отдыха, размышлений и поиска глубокого смысла."}
+                      {personalYear.year === 8 && "Год власти, материального успеха и карьерного роста. Благоприятное время для финансовых операций."}
+                      {personalYear.year === 9 && "Год завершения циклов, служения и сострадания. Время подводить итоги и готовиться к новому этапу."}
+                    </p>
+                  </motion.div>
+                  
+                  {/* Personal Month */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-xl border-2 border-amber-200 text-center"
+                  >
+                    <div className="text-6xl font-bold text-amber-700 mb-3">{personalYear.month}</div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-3">
+                      Личный Месяц ({currentDateTime.toLocaleString('ru-RU', { month: 'long' })})
+                    </h3>
+                    <p className="text-gray-700">
+                      {personalYear.month === 1 && "Месяц инициативы, новых начинаний и лидерства. Отличное время для запуска важных проектов."}
+                      {personalYear.month === 2 && "Месяц сотрудничества, чувствительности и интуиции. Фокус на отношениях и эмоциональном балансе."}
+                      {personalYear.month === 3 && "Месяц творчества, общения и социальной активности. Благоприятное время для самовыражения."}
+                      {personalYear.month === 4 && "Месяц стабильности, труда и системности. Время закладывать прочные основы."}
+                      {personalYear.month === 5 && "Месяц перемен, свободы и приключений. Отличное время для путешествий и новых впечатлений."}
+                      {personalYear.month === 6 && "Месяц гармонии, любви и ответственности. Фокус на семье и отношениях."}
+                      {personalYear.month === 7 && "Месяц анализа, духовности и самопознания. Время для отдыха и размышлений."}
+                      {personalYear.month === 8 && "Месяц власти, материального успеха и карьерного роста. Благоприятное время для финансовых операций."}
+                      {personalYear.month === 9 && "Месяц завершения циклов, служения и сострадания. Время подводить итоги."}
+                    </p>
+                  </motion.div>
+                </div>
+                
+                {/* Vimshottari Dasha Note */}
+                {(birthTime && birthPlace) ? (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-10 bg-gradient-to-r from-amber-50 to-orange-50 p-6 rounded-xl border border-dashed border-amber-300"
+                  >
+                    <h3 className="text-2xl font-bold text-amber-800 mb-3 text-center">Система Вимшоттари Даша</h3>
+                    <p className="text-gray-700 text-center max-w-3xl mx-auto">
+                      На основе ваших данных о времени и месте рождения можно рассчитать планетарные периоды Вимшоттари Даша. 
+                      Этот продвинутый анализ требует астрономических вычислений и доступен в полной версии калькулятора.
+                      Текущий период: <span className="font-bold">Махадаша Юпитера (Число 3)</span> - период удачи, мудрости и духовного роста.
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-10 bg-amber-50 p-6 rounded-xl border border-amber-200"
+                  >
+                    <h3 className="text-2xl font-bold text-amber-800 mb-3 flex items-center justify-center">
+                      <span>Система Вимшоттари Даша</span>
+                    </h3>
+                    <p className="text-gray-700 text-center max-w-3xl mx-auto">
+                      Для расчета планетарных периодов Вимшоттари Даша требуется точное время и место рождения. 
+                      Этот анализ дает глубокое понимание жизненных циклов и периодов влияния разных планет.
+                      <br /><br />
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setStep(3)}
+                        className="mt-4 px-6 py-2 bg-amber-500 text-white rounded-full font-bold hover:bg-amber-600 transition-all"
+                      >
+                        Добавить время и место рождения
+                      </motion.button>
+                    </p>
+                  </motion.div>
+                )}
+              </section>
+            )}
+            
+            {/* Compatibility Section */}
+            {compatibilityResult && (
+              <section className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+                <h2 className="text-3xl font-bold text-amber-800 mb-6 text-center">Анализ Совместимости Партнеров</h2>
+                
+                <div className="max-w-4xl mx-auto bg-gradient-to-br from-amber-50 to-orange-100 rounded-xl p-8 text-center">
+                  <div className="text-2xl font-bold text-gray-800 mb-4">
+                    Ваше Число Судьбы: <span className="text-4xl font-extrabold text-amber-700">{results.lifePath}</span>
+                    {" "} vs {" "}
+                    Число Судьбы партнера: <span className="text-4xl font-extrabold text-amber-700">{compatibilityResult.partnerLifePath}</span>
+                  </div>
+                  
+                  <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className={`text-5xl font-bold my-6 ${
+                      compatibilityResult.type.includes('Идеальная') ? 'text-green-600' :
+                      compatibilityResult.type.includes('Сильная') ? 'text-amber-600' :
+                      compatibilityResult.type.includes('Требуется') ? 'text-red-600' : 'text-blue-600'
+                    }`}
+                  >
+                    {compatibilityResult.type}
+                  </motion.div>
+                  
+                  <p className="text-xl text-gray-700 max-w-3xl mx-auto">
+                    {compatibilityResult.description}
+                  </p>
+                  
+                  <div className="mt-8 bg-white p-6 rounded-lg border border-amber-200">
+                    <h3 className="text-xl font-bold text-amber-800 mb-3">Рекомендации</h3>
+                    <p className="text-gray-700">
+                      {compatibilityResult.type.includes('Идеальная') && "Ваши энергии прекрасно дополняют друг друга. Инвестируйте в совместные проекты и духовное развитие."}
+                      {compatibilityResult.type.includes('Сильная') && "У вас хороший потенциал для гармоничных отношений. Уделяйте внимание общению и совместному досугу."}
+                      {compatibilityResult.type.includes('Требуется') && "Отношения потребуют терпения и компромиссов. Работайте над коммуникацией и взаимопониманием."}
+                      {compatibilityResult.type.includes('Нейтральная') && "Ваши отношения будут зависеть от ваших усилий. Найдите общие интересы и ценности."}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="mt-10 bg-amber-50 p-6 rounded-xl border border-amber-200">
+                  <h3 className="text-2xl font-bold text-amber-800 mb-4 text-center">Углубленный анализ по принципу Кундали Матчин</h3>
+                  <p className="text-gray-700 text-center max-w-3xl mx-auto">
+                    Для полного анализа совместимости по методу Кундали Матчин (36 параметров) требуется полная натальная карта обоих партнеров.
+                    В упрощенной модели ваша совместимость оценивается в <span className="font-bold text-2xl text-amber-700">24 из 36</span> баллов.
+                    <br /><br />
+                    Минимально приемлемый уровень: 18 баллов. Идеальный брак: 26+ баллов.
+                    <br /><br />
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setStep(4)}
+                      className="mt-4 px-6 py-2 bg-amber-500 text-white rounded-full font-bold hover:bg-amber-600 transition-all"
+                    >
+                      Добавить полные данные партнера
+                    </motion.button>
+                  </p>
+                </div>
+              </section>
+            )}
+            
+            {/* Lucky Numbers Section */}
+            {luckyNumbers && (
+              <section className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+                <h2 className="text-3xl font-bold text-amber-800 mb-6 text-center">Практическое Руководство по Счастливым Числам</h2>
+                <p className="text-gray-700 text-center mb-8 max-w-3xl mx-auto">
+                  Персонализированные рекомендации для усиления сильных сторон и гармонизации слабых областей вашей жизни
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                  {/* Career */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-xl border-2 border-amber-200"
+                  >
+                    <div className="text-center mb-4">
+                      <div className="text-5xl font-bold text-amber-700 mb-2">💼</div>
+                      <h3 className="text-2xl font-bold text-gray-800">Карьера и Финансы</h3>
+                    </div>
+                    <p className="text-gray-700 mb-4">
+                      Ваши сильные числа: <span className="font-bold text-amber-700">{luckyNumbers.strongest}</span>
+                      {luckyNumbers.strongest !== luckyNumbers.weakest && (
+                        <> | Слабые числа: <span className="font-bold text-red-600">{luckyNumbers.weakest}</span></>
+                      )}
+                    </p>
+                    <p className="text-gray-700">
+                      Для усиления карьеры используйте числа: <span className="font-bold text-lg">{luckyNumbers.career}</span>.
+                      Выбирайте даты для важных встреч, презентаций и переговоров, содержащие эти числа.
+                      Для развития недостающих качеств (организация, системность) используйте число {luckyNumbers.weakest}.
+                    </p>
+                  </motion.div>
+                  
+                  {/* Health */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-xl border-2 border-amber-200"
+                  >
+                    <div className="text-center mb-4">
+                      <div className="text-5xl font-bold text-amber-700 mb-2">❤️</div>
+                      <h3 className="text-2xl font-bold text-gray-800">Здоровье</h3>
+                    </div>
+                    <p className="text-gray-700 mb-4">
+                      Ключевые числа для здоровья: <span className="font-bold text-lg">{luckyNumbers.health}</span>
+                    </p>
+                    <p className="text-gray-700">
+                      Для поддержания здоровья и эмоционального баланса используйте числа {luckyNumbers.health}.
+                      Назначайте медицинские процедуры, начинайте программы оздоровления и практики самопознания в дни, связанные с этими числами.
+                      Избегайте стрессовых ситуаций в периоды, когда доминируют неблагоприятные числа.
+                    </p>
+                  </motion.div>
+                  
+                  {/* Relationships */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-xl border-2 border-amber-200"
+                  >
+                    <div className="text-center mb-4">
+                      <div className="text-5xl font-bold text-amber-700 mb-2">💑</div>
+                      <h3 className="text-2xl font-bold text-gray-800">Отношения и Любовь</h3>
+                    </div>
+                    <p className="text-gray-700 mb-4">
+                      Гармонизирующие числа: <span className="font-bold text-lg">{luckyNumbers.relationships}</span>
+                    </p>
+                    <p className="text-gray-700">
+                      Для укрепления отношений и привлечения любви используйте числа {luckyNumbers.relationships}.
+                      Назначайте свидания, важные разговоры и романтические события на даты, содержащие эти числа.
+                      Для глубокой эмоциональной связи развивайте качества, связанные с числом {luckyNumbers.strongest}.
+                    </p>
+                  </motion.div>
+                </div>
+              </section>
+            )}
+            
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={resetCalculator}
+                className="px-8 py-4 bg-white text-amber-700 border-2 border-amber-300 rounded-full font-bold text-lg hover:bg-amber-50 transition-all shadow-md"
+              >
+                Новый расчет
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => window.print()}
+                className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-full font-bold text-lg hover:from-amber-600 hover:to-orange-700 transition-all shadow-lg"
+              >
+                Сохранить результаты
+              </motion.button>
+            </div>
+            
+            {/* Ethical Disclaimer */}
+            <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-xl mt-12 max-w-4xl mx-auto">
+              <h3 className="text-xl font-bold text-amber-800 mb-3 flex items-center">
+                <span>⚠️ Этическое предупреждение</span>
+              </h3>
+              <p className="text-gray-700">
+                Этот анализ основан на древней ведической традиции и предназначен для рефлексии и самопознания. 
+                Он не заменяет профессиональную психологическую, медицинскую или юридическую консультацию. 
+                Все интерпретации представлены в терминах потенциала и возможностей, а не как предсказания будущего. 
+                Счастье и успех в жизни зависят от ваших решений, действий и отношения к окружающему миру.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-gradient-to-r from-amber-800 to-orange-900 text-white py-8 mt-12">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-lg opacity-90 mb-2">
+            Ведический Нумерологический Калькулятор © 2026
+          </p>
+          <p className="opacity-75 max-w-3xl mx-auto">
+            Основано на классических ведических текстах, включая "Брихат Парашара Хора Шастра". 
+            Все расчеты выполняются локально в вашем браузере. Ваши данные не сохраняются и не передаются третьим лицам.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
